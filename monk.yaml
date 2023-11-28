@@ -1,0 +1,101 @@
+namespace: tutorial-phaser
+
+redis:
+  defines: runnable
+  inherits: redis/redis
+  metadata:
+    name: redis
+    description: Redis is used by the server for session storage or message brokering.
+    icon: >-
+      https://cdn.icon-icons.com/icons2/2415/PNG/512/redis_original_wordmark_logo_icon_146369.png
+  variables:
+    redis_disable_commands:
+      type: string
+      value: FLUSHDB,FLUSHALL,CONFIG
+      description: ''
+    redis_empty_password:
+      type: string
+      value: 'yes'
+      description: ''
+    redis_instance_name:
+      type: string
+      value: master
+      description: ''
+    redis_io_thread:
+      type: string
+      value: '1'
+      description: ''
+    redis_io_threads_do_reads:
+      type: string
+      value: 'yes'
+      description: ''
+    redis_port:
+      type: int
+      value: '6379'
+      description: ''
+
+client-web-app:
+  defines: runnable
+  metadata:
+    name: client-web-app
+    description: >-
+      A web application using Phaser with Colyseus.js for real-time multiplayer
+      features, served using Parcel.
+    icon: https://emojiapi.dev/api/v1/robot.svg
+  containers:
+    client-web-app:
+      image: env-2762.registry.local/client-web-app:master-8084c30
+      build: .
+      dockerfile: Dockerfile.client-web-app
+  services:
+    http-server-port:
+      description: Port for serving the client web application
+      container: client-web-app
+      port: 8080
+      host-port: 8080
+      publish: true
+      protocol: tcp
+  connections:
+    websocket-server-connection:
+      target: tutorial-phaser/server-websocket
+      service: '!!!SETME!!!'
+      optional: true
+      description: Connection to the WebSocket server for real-time multiplayer features
+    http-server-connection:
+      target: tutorial-phaser/server-websocket
+      service: '!!!SETME!!!'
+      optional: true
+      description: Connection to the HTTP server for server interactions
+  variables:
+    backend-url:
+      env: BACKEND_URL
+      type: string
+      value: <- connection-port("websocket-server-connection")
+      description: WebSocket URL for the server, defaults to ws://localhost:2567
+    backend-http-url:
+      env: BACKEND_HTTP_URL
+      type: string
+      value: <- connection-port("http-server-connection")
+      description: HTTP URL for the server, derived from BACKEND_URL
+
+server-websocket:
+  defines: runnable
+  metadata:
+    name: server-websocket
+    description: A Colyseus server application for multiplayer gaming, requires Redis.
+    icon: https://emojiapi.dev/api/v1/robot.svg
+  containers:
+    server-websocket:
+      image: env-2762.registry.local/server-websocket:master-8084c30
+      build: .
+      dockerfile: Dockerfile.server-websocket
+  services: {}
+  connections: {}
+  variables: {}
+
+stack:
+  defines: group
+  members:
+    - tutorial-phaser/redis
+    - tutorial-phaser/client-web-app
+    - tutorial-phaser/server-websocket
