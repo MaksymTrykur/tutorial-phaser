@@ -1,0 +1,56 @@
+namespace: tutorial-phaser
+
+client:
+  defines: runnable
+  metadata:
+    name: client
+    description: Web application built with Parcel
+    icon: https://emojiapi.dev/api/v1/robot.svg
+  containers:
+    client:
+      image: env-2055.registry.local/client:master-8084c30
+      build: .
+      dockerfile: Dockerfile.client
+  services:
+    http-server:
+      description: Port for serving the client application
+      container: client
+      port: 8080
+      host-port: 8080
+      publish: true
+      protocol: tcp
+  connections: {}
+  variables: {}
+
+server:
+  defines: runnable
+  metadata:
+    name: server
+    description: WebSocket game server using Colyseus
+    icon: https://emojiapi.dev/api/v1/robot.svg
+  containers:
+    server:
+      image: env-2055.registry.local/server:master-8084c30
+      build: .
+      dockerfile: Dockerfile.server
+  services:
+    websocket-port:
+      description: WebSocket port for game server
+      container: server
+      port: $port
+      host-port: $port
+      publish: true
+      protocol: tcp
+  connections: {}
+  variables:
+    port:
+      env: PORT
+      type: int
+      value: 2567
+      description: Port on which the server service will listen
+
+stack:
+  defines: group
+  members:
+    - tutorial-phaser/client
+    - tutorial-phaser/server
