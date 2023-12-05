@@ -1,0 +1,102 @@
+namespace: tutorial-phaser
+
+redis:
+  defines: runnable
+  inherits: redis/redis
+  metadata:
+    name: redis
+    description: >-
+      Redis server used for handling presence and session data for the
+      multiplayer game.
+    icon: >-
+      https://cdn.icon-icons.com/icons2/2415/PNG/512/redis_original_wordmark_logo_icon_146369.png
+  variables:
+    redis_disable_commands:
+      type: string
+      value: FLUSHDB,FLUSHALL,CONFIG
+      description: ''
+    redis_empty_password:
+      type: string
+      value: 'yes'
+      description: ''
+    redis_instance_name:
+      type: string
+      value: master
+      description: ''
+    redis_io_thread:
+      type: string
+      value: '1'
+      description: ''
+    redis_io_threads_do_reads:
+      type: string
+      value: 'yes'
+      description: ''
+    redis_port:
+      type: int
+      value: 6379
+      description: ''
+
+game-client:
+  defines: runnable
+  metadata:
+    name: game-client
+    description: >-
+      The client-side of the multiplayer game, built with Phaser and
+      Colyseus.js.
+    icon: https://emojiapi.dev/api/v1/robot.svg
+  containers:
+    game-client:
+      image: env-2129.registry.local/game-client:master-8084c30
+      build: .
+      dockerfile: Dockerfile.game-client
+  services:
+    development-server:
+      description: Port for the local development server
+      container: game-client
+      port: 1234
+      host-port: 1234
+      publish: true
+      protocol: tcp
+  connections:
+    game-server-connection:
+      target: tutorial-phaser/game-server
+      service: game-server-port
+      optional: true
+      description: WebSocket connection to the game server
+  variables: {}
+
+game-server:
+  defines: runnable
+  metadata:
+    name: game-server
+    description: >-
+      The server-side WebSocket server for the multiplayer game, using Colyseus
+      and Express.
+    icon: https://emojiapi.dev/api/v1/robot.svg
+  containers:
+    game-server:
+      image: env-2129.registry.local/game-server:master-8084c30
+      build: .
+      dockerfile: Dockerfile.game-server
+  services:
+    game-server-port:
+      description: WebSocket server port for the multiplayer game
+      container: game-server
+      port: 2567
+      host-port: 2567
+      publish: true
+      protocol: tcp
+  connections: {}
+  variables:
+    port:
+      env: PORT
+      type: int
+      value: 2567
+      description: The port on which the game server listens for connections
+
+stack:
+  defines: group
+  members:
+    - tutorial-phaser/redis
+    - tutorial-phaser/game-client
+    - tutorial-phaser/game-server
